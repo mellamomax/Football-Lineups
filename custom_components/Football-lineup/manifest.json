@@ -1,0 +1,9 @@
+{
+  "domain": "football_lineup",
+  "name": "Football Lineup",
+  "version": "1.0",
+  "documentation": "https://github.com/mellamomax/football-lineup",
+  "requirements": ["requests"],
+  "dependencies": [],
+  "codeowners": ["@mellamomax"]
+} 
