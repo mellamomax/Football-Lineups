@@ -48,7 +48,7 @@ class FootballLineupSensor(Entity):
             self._get_lineup(fixture_id)
 
     def _get_latest_fixture_id(self):
-        url = "https://v3.football.api-sports.io/fixtures/?season=2023&league=140&team=529&last=1"
+        url = "https://v3.football.api-sports.io/fixtures/?season=2024&league=140&team=529&last=1"
         headers = {
             'x-rapidapi-host': "v3.football.api-sports.io",
             'x-rapidapi-key': self._api_key
