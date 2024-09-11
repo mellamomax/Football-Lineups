@@ -67,21 +67,20 @@ class FootballLineupSensor(Entity):
             'x-rapidapi-host': "v3.football.api-sports.io",
             'x-rapidapi-key': self._api_key
         }
-        _LOGGER.debug("Fetching lineup for fixture ID: %s", fixture_id)
         response = requests.get(url, headers=headers)
         data = response.json()
-        _LOGGER.debug("Lineup response data: %s", data)
+        
+        fixture_info = self._get_fixture_info(fixture_id)  # Get team names and fixture details
+        
         if data['response']:
+            home_team_lineup = {}
+            away_team_lineup = {}
+            
             for team in data['response']:
-                if team['team']['id'] == 529:  # Filter for Barcelona team ID
-                    lineup_data = team
-                    self._state = f"{lineup_data['team']['name']} lineup"
-
-                    self._attributes = {
-                        'home_team': fixture_info['home_team'],
-                        'away_team': fixture_info['away_team'],
-                        'coach': lineup_data['coach']['name'],
-                        'formation': lineup_data['formation'],
+                if team['team']['id'] == fixture_info['home_team_id']:  # Check if team is home
+                    home_team_lineup = {
+                        'coach': team['coach']['name'],
+                        'formation': team['formation'],
                         'starting XI': [
                             {
                                 'name': player['player']['name'],
@@ -90,7 +89,7 @@ class FootballLineupSensor(Entity):
                                 'number': player['player']['number'],
                                 'grid': player['player']['grid']  # Include the grid position
                             }
-                            for player in lineup_data['startXI']
+                            for player in team['startXI']
                         ],
                         'substitutes': [
                             {
@@ -98,27 +97,65 @@ class FootballLineupSensor(Entity):
                                 'ID': sub['player']['id'],
                                 'position': sub['player']['pos'],
                                 'number': sub['player']['number'],
-                            	'grid': sub['player'].get('grid', None)  # Include grid if available
+                                'grid': sub['player'].get('grid', None)
                             }
-                            for sub in lineup_data['substitutes']
+                            for sub in team['substitutes']
                         ]
                     }
-                    break
+                elif team['team']['id'] == fixture_info['away_team_id']:  # Check if team is away
+                    away_team_lineup = {
+                        'coach': team['coach']['name'],
+                        'formation': team['formation'],
+                        'starting XI': [
+                            {
+                                'name': player['player']['name'],
+                                'ID': player['player']['id'],
+                                'position': player['player']['pos'],
+                                'number': player['player']['number'],
+                                'grid': player['player']['grid']
+                            }
+                            for player in team['startXI']
+                        ],
+                        'substitutes': [
+                            {
+                                'name': sub['player']['name'],
+                                'ID': sub['player']['id'],
+                                'position': sub['player']['pos'],
+                                'number': sub['player']['number'],
+                                'grid': sub['player'].get('grid', None)
+                            }
+                            for sub in team['substitutes']
+                        ]
+                    }
 
+            # Combine home and away team info into the attributes
+            self._state = f"{fixture_info['home_team']} vs {fixture_info['away_team']} lineups"
+            self._attributes = {
+                'home_team': fixture_info['home_team'],
+                'home_team_lineup': home_team_lineup,
+                'away_team': fixture_info['away_team'],
+                'away_team_lineup': away_team_lineup,
+                'fixture_date': fixture_info['date'],
+            }
+
+                    
+                    
     def _get_fixture_info(self, fixture_id):
         url = f"https://v3.football.api-sports.io/fixtures/?id={fixture_id}"
         headers = {
             'x-rapidapi-host': "v3.football.api-sports.io",
             'x-rapidapi-key': self._api_key
         }
-        _LOGGER.debug("Fetching fixture info for fixture ID: %s", fixture_id)
         response = requests.get(url, headers=headers)
         data = response.json()
-        _LOGGER.debug("Fixture info response data: %s", data)
+
         if data['response']:
             fixture = data['response'][0]
             return {
                 'home_team': fixture['teams']['home']['name'],
-                'away_team': fixture['teams']['away']['name']
+                'home_team_id': fixture['teams']['home']['id'],
+                'away_team': fixture['teams']['away']['name'],
+                'away_team_id': fixture['teams']['away']['id'],
+                'date': fixture['fixture']['date']
             }
         return None
